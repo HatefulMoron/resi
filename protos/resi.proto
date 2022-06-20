@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option go_package = "github.com/hatefulmoron/resi/protos/protos";
+package protos;
+
+message RedundancyTSN {
+  uint64 tsn = 1;
+}
+
+message RedundancyMergeRequest {
+  bytes cookie = 1;
+}
+
+message RedundancyResponse {
+  string addr = 1;
+  bytes cookie = 2;
+}
+
+message RedundancyCookieRequest {
+}
+
+message RedundancyRequest {
+  oneof ty {
+    RedundancyCookieRequest cookie = 1;
+    RedundancyMergeRequest merge = 2;
+  }
+}

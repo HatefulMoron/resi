@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option go_package = "github.com/hatefulmoron/resi/protos/protos";
+package protos;
+
+service Esi {
+  rpc Modify (ModifyRequest) returns (ModifyResponse) {}
+  rpc Test (TestRequest) returns (TestResponse) {}
+}
+
+message Extension {
+  uint32 id = 1;
+  bool pass = 2;
+  bytes data = 3;
+}
+
+message TestRequest {
+  repeated Extension ext = 1;
+  bytes data = 2;
+}
+
+message TestResponse {
+  repeated Extension ext = 1;
+  bytes data = 2;
+}
+
+// ...
+
+message ModifyRequest {
+  Extension ext = 1;
+}
+
+message ModifyResponse {
+  Extension ext = 1;
+}

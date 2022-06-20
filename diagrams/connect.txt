@@ -1,0 +1,28 @@
+@startuml
+autonumber
+
+participant Client as c #lightblue
+participant "[TCP] Client Gateway" as ctcp #lightblue
+participant "[NKN] Client Gateway" as cnkn #lightblue
+participant "[TCP] End Gateway" as etcp
+participant "[NKN] End Gateway" as enkn
+participant "Node ESI grpc" as node #lime
+
+== Upgrading a connection ==
+
+c -> ctcp : [connect ip:port]
+
+ctcp -> etcp : [connect]
+etcp -> node : [connect]
+etcp <- node : [accept]
+
+ctcp -> enkn : [connect]
+
+ctcp -> etcp : Modify(CookieRequest)
+ctcp <- etcp : Cookie
+cnkn -> enkn : Modify(MergeRequest [Cookie])
+cnkn <- enkn : OK
+
+c <- ctcp : [accept]
+
+@enduml
