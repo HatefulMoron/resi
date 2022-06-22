@@ -51,6 +51,43 @@ in front of end nodes, and another in front of users of the ESI.
 At the moment, two transport protocols are aimed to be supported by the RESI
 extension: TCP and NKN[2].
 
+## Configuring Redundancy
+
+RESI supports three transportation methods:
+
+1. ESI over TCP;
+2. ESI over NKN;
+3. ESI over a special RESI transport protocol
+
+To configure the RESI gateway, pass in a `-config` flag which points to a
+TOML flavoured configuration file:
+
+```toml
+# At least one of [tcp] or [nkn] must be present for RESI to function correctly.
+
+# If the [tcp] section is not configued, RESI will not attempt to use TCP.
+[tcp]
+address = "127.0.0.1:4900" # IPv4 or IPv6
+
+# If the [nkn] section is not configued, RESI will not attempt to use NKN.
+[nkn]
+address = "919c54b38f907e82f030068c2c4a06239a2941f712306d9409474ebade479208"
+subclients = 3 # See NKN documentation for more details.
+
+# RESI specific configuration options
+[resi]
+# RESI can operate in either 'strict' or 'permissive' mode. In the default
+# strict mode, identical data must be observed on all transports before it
+# is passed through the gateway. This is considered the most reliable mode,
+# although is not always beneficial and necessarily implies that the transport
+# will be as slow as the slowest underlying protocol.
+#
+# In permissive mode, the RESI gateway will wait for the data to arrive on one
+# of the transports and disregard any duplicate data that arrives in the
+# future.
+mode = "strict"
+```
+
 [1]: https://datatracker.ietf.org/doc/html/rfc4960
 [2]: https://nkn.org
 

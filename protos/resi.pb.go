@@ -20,6 +20,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type Packet struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Sn   uint64 `protobuf:"varint,1,opt,name=sn,proto3" json:"sn,omitempty"`
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+}
+
+func (x *Packet) Reset() {
+	*x = Packet{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_protos_resi_proto_msgTypes[0]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Packet) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Packet) ProtoMessage() {}
+
+func (x *Packet) ProtoReflect() protoreflect.Message {
+	mi := &file_protos_resi_proto_msgTypes[0]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Packet.ProtoReflect.Descriptor instead.
+func (*Packet) Descriptor() ([]byte, []int) {
+	return file_protos_resi_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Packet) GetSn() uint64 {
+	if x != nil {
+		return x.Sn
+	}
+	return 0
+}
+
+func (x *Packet) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
 type RedundancyTSN struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -31,7 +86,7 @@ type RedundancyTSN struct {
 func (x *RedundancyTSN) Reset() {
 	*x = RedundancyTSN{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_resi_proto_msgTypes[0]
+		mi := &file_protos_resi_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -44,7 +99,7 @@ func (x *RedundancyTSN) String() string {
 func (*RedundancyTSN) ProtoMessage() {}
 
 func (x *RedundancyTSN) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_resi_proto_msgTypes[0]
+	mi := &file_protos_resi_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -57,7 +112,7 @@ func (x *RedundancyTSN) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RedundancyTSN.ProtoReflect.Descriptor instead.
 func (*RedundancyTSN) Descriptor() ([]byte, []int) {
-	return file_protos_resi_proto_rawDescGZIP(), []int{0}
+	return file_protos_resi_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *RedundancyTSN) GetTsn() uint64 {
@@ -72,13 +127,13 @@ type RedundancyMergeRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Cookie []byte `protobuf:"bytes,1,opt,name=cookie,proto3" json:"cookie,omitempty"`
+	Cookie string `protobuf:"bytes,1,opt,name=cookie,proto3" json:"cookie,omitempty"`
 }
 
 func (x *RedundancyMergeRequest) Reset() {
 	*x = RedundancyMergeRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_resi_proto_msgTypes[1]
+		mi := &file_protos_resi_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -91,7 +146,7 @@ func (x *RedundancyMergeRequest) String() string {
 func (*RedundancyMergeRequest) ProtoMessage() {}
 
 func (x *RedundancyMergeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_resi_proto_msgTypes[1]
+	mi := &file_protos_resi_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -104,14 +159,14 @@ func (x *RedundancyMergeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RedundancyMergeRequest.ProtoReflect.Descriptor instead.
 func (*RedundancyMergeRequest) Descriptor() ([]byte, []int) {
-	return file_protos_resi_proto_rawDescGZIP(), []int{1}
+	return file_protos_resi_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *RedundancyMergeRequest) GetCookie() []byte {
+func (x *RedundancyMergeRequest) GetCookie() string {
 	if x != nil {
 		return x.Cookie
 	}
-	return nil
+	return ""
 }
 
 type RedundancyResponse struct {
@@ -120,13 +175,13 @@ type RedundancyResponse struct {
 	unknownFields protoimpl.UnknownFields
 
 	Addr   string `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
-	Cookie []byte `protobuf:"bytes,2,opt,name=cookie,proto3" json:"cookie,omitempty"`
+	Cookie string `protobuf:"bytes,2,opt,name=cookie,proto3" json:"cookie,omitempty"`
 }
 
 func (x *RedundancyResponse) Reset() {
 	*x = RedundancyResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_resi_proto_msgTypes[2]
+		mi := &file_protos_resi_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -139,7 +194,7 @@ func (x *RedundancyResponse) String() string {
 func (*RedundancyResponse) ProtoMessage() {}
 
 func (x *RedundancyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_resi_proto_msgTypes[2]
+	mi := &file_protos_resi_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -152,7 +207,7 @@ func (x *RedundancyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RedundancyResponse.ProtoReflect.Descriptor instead.
 func (*RedundancyResponse) Descriptor() ([]byte, []int) {
-	return file_protos_resi_proto_rawDescGZIP(), []int{2}
+	return file_protos_resi_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RedundancyResponse) GetAddr() string {
@@ -162,11 +217,11 @@ func (x *RedundancyResponse) GetAddr() string {
 	return ""
 }
 
-func (x *RedundancyResponse) GetCookie() []byte {
+func (x *RedundancyResponse) GetCookie() string {
 	if x != nil {
 		return x.Cookie
 	}
-	return nil
+	return ""
 }
 
 type RedundancyCookieRequest struct {
@@ -178,7 +233,7 @@ type RedundancyCookieRequest struct {
 func (x *RedundancyCookieRequest) Reset() {
 	*x = RedundancyCookieRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_resi_proto_msgTypes[3]
+		mi := &file_protos_resi_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -191,7 +246,7 @@ func (x *RedundancyCookieRequest) String() string {
 func (*RedundancyCookieRequest) ProtoMessage() {}
 
 func (x *RedundancyCookieRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_resi_proto_msgTypes[3]
+	mi := &file_protos_resi_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -204,7 +259,7 @@ func (x *RedundancyCookieRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RedundancyCookieRequest.ProtoReflect.Descriptor instead.
 func (*RedundancyCookieRequest) Descriptor() ([]byte, []int) {
-	return file_protos_resi_proto_rawDescGZIP(), []int{3}
+	return file_protos_resi_proto_rawDescGZIP(), []int{4}
 }
 
 type RedundancyRequest struct {
@@ -221,7 +276,7 @@ type RedundancyRequest struct {
 func (x *RedundancyRequest) Reset() {
 	*x = RedundancyRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_protos_resi_proto_msgTypes[4]
+		mi := &file_protos_resi_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -234,7 +289,7 @@ func (x *RedundancyRequest) String() string {
 func (*RedundancyRequest) ProtoMessage() {}
 
 func (x *RedundancyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_protos_resi_proto_msgTypes[4]
+	mi := &file_protos_resi_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -247,7 +302,7 @@ func (x *RedundancyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RedundancyRequest.ProtoReflect.Descriptor instead.
 func (*RedundancyRequest) Descriptor() ([]byte, []int) {
-	return file_protos_resi_proto_rawDescGZIP(), []int{4}
+	return file_protos_resi_proto_rawDescGZIP(), []int{5}
 }
 
 func (m *RedundancyRequest) GetTy() isRedundancyRequest_Ty {
@@ -291,31 +346,33 @@ var File_protos_resi_proto protoreflect.FileDescriptor
 
 var file_protos_resi_proto_rawDesc = []byte{
 	0x0a, 0x11, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2f, 0x72, 0x65, 0x73, 0x69, 0x2e, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x12, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x22, 0x21, 0x0a, 0x0d, 0x52,
-	0x65, 0x64, 0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79, 0x54, 0x53, 0x4e, 0x12, 0x10, 0x0a, 0x03,
-	0x74, 0x73, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x03, 0x74, 0x73, 0x6e, 0x22, 0x30,
-	0x0a, 0x16, 0x52, 0x65, 0x64, 0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79, 0x4d, 0x65, 0x72, 0x67,
-	0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f, 0x6f, 0x6b,
-	0x69, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x63, 0x6f, 0x6f, 0x6b, 0x69, 0x65,
-	0x22, 0x40, 0x0a, 0x12, 0x52, 0x65, 0x64, 0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x61, 0x64, 0x64, 0x72, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x61, 0x64, 0x64, 0x72, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f,
-	0x6f, 0x6b, 0x69, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x63, 0x6f, 0x6f, 0x6b,
-	0x69, 0x65, 0x22, 0x19, 0x0a, 0x17, 0x52, 0x65, 0x64, 0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79,
-	0x43, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x8c, 0x01,
-	0x0a, 0x11, 0x52, 0x65, 0x64, 0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x12, 0x39, 0x0a, 0x06, 0x63, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x0b, 0x32, 0x1f, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x52, 0x65, 0x64,
-	0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79, 0x43, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x48, 0x00, 0x52, 0x06, 0x63, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x12, 0x36,
-	0x0a, 0x05, 0x6d, 0x65, 0x72, 0x67, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1e, 0x2e,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x52, 0x65, 0x64, 0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63,
-	0x79, 0x4d, 0x65, 0x72, 0x67, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x48, 0x00, 0x52,
-	0x05, 0x6d, 0x65, 0x72, 0x67, 0x65, 0x42, 0x04, 0x0a, 0x02, 0x74, 0x79, 0x42, 0x2c, 0x5a, 0x2a,
-	0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x68, 0x61, 0x74, 0x65, 0x66,
-	0x75, 0x6c, 0x6d, 0x6f, 0x72, 0x6f, 0x6e, 0x2f, 0x72, 0x65, 0x73, 0x69, 0x2f, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x73, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x6f, 0x74, 0x6f, 0x12, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x22, 0x2c, 0x0a, 0x06, 0x50,
+	0x61, 0x63, 0x6b, 0x65, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x73, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x04, 0x52, 0x02, 0x73, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x21, 0x0a, 0x0d, 0x52, 0x65, 0x64,
+	0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79, 0x54, 0x53, 0x4e, 0x12, 0x10, 0x0a, 0x03, 0x74, 0x73,
+	0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x03, 0x74, 0x73, 0x6e, 0x22, 0x30, 0x0a, 0x16,
+	0x52, 0x65, 0x64, 0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79, 0x4d, 0x65, 0x72, 0x67, 0x65, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f, 0x6f, 0x6b, 0x69, 0x65,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x63, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x22, 0x40,
+	0x0a, 0x12, 0x52, 0x65, 0x64, 0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x61, 0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x04, 0x61, 0x64, 0x64, 0x72, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f, 0x6f, 0x6b,
+	0x69, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x63, 0x6f, 0x6f, 0x6b, 0x69, 0x65,
+	0x22, 0x19, 0x0a, 0x17, 0x52, 0x65, 0x64, 0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79, 0x43, 0x6f,
+	0x6f, 0x6b, 0x69, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x8c, 0x01, 0x0a, 0x11,
+	0x52, 0x65, 0x64, 0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x39, 0x0a, 0x06, 0x63, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x1f, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x52, 0x65, 0x64, 0x75, 0x6e,
+	0x64, 0x61, 0x6e, 0x63, 0x79, 0x43, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x48, 0x00, 0x52, 0x06, 0x63, 0x6f, 0x6f, 0x6b, 0x69, 0x65, 0x12, 0x36, 0x0a, 0x05,
+	0x6d, 0x65, 0x72, 0x67, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1e, 0x2e, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x73, 0x2e, 0x52, 0x65, 0x64, 0x75, 0x6e, 0x64, 0x61, 0x6e, 0x63, 0x79, 0x4d,
+	0x65, 0x72, 0x67, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x48, 0x00, 0x52, 0x05, 0x6d,
+	0x65, 0x72, 0x67, 0x65, 0x42, 0x04, 0x0a, 0x02, 0x74, 0x79, 0x42, 0x2c, 0x5a, 0x2a, 0x67, 0x69,
+	0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x68, 0x61, 0x74, 0x65, 0x66, 0x75, 0x6c,
+	0x6d, 0x6f, 0x72, 0x6f, 0x6e, 0x2f, 0x72, 0x65, 0x73, 0x69, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x73, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -330,17 +387,18 @@ func file_protos_resi_proto_rawDescGZIP() []byte {
 	return file_protos_resi_proto_rawDescData
 }
 
-var file_protos_resi_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_protos_resi_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_protos_resi_proto_goTypes = []interface{}{
-	(*RedundancyTSN)(nil),           // 0: protos.RedundancyTSN
-	(*RedundancyMergeRequest)(nil),  // 1: protos.RedundancyMergeRequest
-	(*RedundancyResponse)(nil),      // 2: protos.RedundancyResponse
-	(*RedundancyCookieRequest)(nil), // 3: protos.RedundancyCookieRequest
-	(*RedundancyRequest)(nil),       // 4: protos.RedundancyRequest
+	(*Packet)(nil),                  // 0: protos.Packet
+	(*RedundancyTSN)(nil),           // 1: protos.RedundancyTSN
+	(*RedundancyMergeRequest)(nil),  // 2: protos.RedundancyMergeRequest
+	(*RedundancyResponse)(nil),      // 3: protos.RedundancyResponse
+	(*RedundancyCookieRequest)(nil), // 4: protos.RedundancyCookieRequest
+	(*RedundancyRequest)(nil),       // 5: protos.RedundancyRequest
 }
 var file_protos_resi_proto_depIdxs = []int32{
-	3, // 0: protos.RedundancyRequest.cookie:type_name -> protos.RedundancyCookieRequest
-	1, // 1: protos.RedundancyRequest.merge:type_name -> protos.RedundancyMergeRequest
+	4, // 0: protos.RedundancyRequest.cookie:type_name -> protos.RedundancyCookieRequest
+	2, // 1: protos.RedundancyRequest.merge:type_name -> protos.RedundancyMergeRequest
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -355,7 +413,7 @@ func file_protos_resi_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_protos_resi_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RedundancyTSN); i {
+			switch v := v.(*Packet); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -367,7 +425,7 @@ func file_protos_resi_proto_init() {
 			}
 		}
 		file_protos_resi_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RedundancyMergeRequest); i {
+			switch v := v.(*RedundancyTSN); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -379,7 +437,7 @@ func file_protos_resi_proto_init() {
 			}
 		}
 		file_protos_resi_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RedundancyResponse); i {
+			switch v := v.(*RedundancyMergeRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -391,7 +449,7 @@ func file_protos_resi_proto_init() {
 			}
 		}
 		file_protos_resi_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*RedundancyCookieRequest); i {
+			switch v := v.(*RedundancyResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -403,6 +461,18 @@ func file_protos_resi_proto_init() {
 			}
 		}
 		file_protos_resi_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RedundancyCookieRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_protos_resi_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*RedundancyRequest); i {
 			case 0:
 				return &v.state
@@ -415,7 +485,7 @@ func file_protos_resi_proto_init() {
 			}
 		}
 	}
-	file_protos_resi_proto_msgTypes[4].OneofWrappers = []interface{}{
+	file_protos_resi_proto_msgTypes[5].OneofWrappers = []interface{}{
 		(*RedundancyRequest_Cookie)(nil),
 		(*RedundancyRequest_Merge)(nil),
 	}
@@ -425,7 +495,7 @@ func file_protos_resi_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_protos_resi_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

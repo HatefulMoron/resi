@@ -3,17 +3,22 @@ syntax = "proto3";
 option go_package = "github.com/hatefulmoron/resi/protos/protos";
 package protos;
 
+message Packet {
+  uint64 sn = 1;
+  bytes data = 2;
+}
+
 message RedundancyTSN {
   uint64 tsn = 1;
 }
 
 message RedundancyMergeRequest {
-  bytes cookie = 1;
+  string cookie = 1;
 }
 
 message RedundancyResponse {
   string addr = 1;
-  bytes cookie = 2;
+  string cookie = 2;
 }
 
 message RedundancyCookieRequest {
