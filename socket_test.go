@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"log"
 	"math/rand"
 	"net"
 	"sync"
@@ -17,6 +16,57 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+func TestSocketSingleSplit(t *testing.T) {
+	listener, _ := net.Listen("tcp", "localhost:5000")
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	addr := listener.Addr().String()
+	expected := make([]byte, 48)
+	rand.Read(expected)
+
+	go func() {
+
+		fd1, err := listener.Accept()
+		assert.Equal(t, nil, err)
+
+		sock := NewSocket([]net.Conn{fd1})
+		defer sock.Close()
+
+		buffer := make([]byte, 24)
+
+		n, err := sock.Read(buffer)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, 24, n)
+		assert.Equal(t, expected[0:24], buffer)
+
+		n, err = sock.Read(buffer)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, 24, n)
+		assert.Equal(t, expected[24:], buffer)
+
+		wg.Done()
+
+	}()
+
+	{
+		a, err := net.Dial("tcp", addr)
+		assert.Equal(t, nil, err)
+
+		assoc := NewSocket([]net.Conn{a})
+		n, err := assoc.Write(expected)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, len(expected), n)
+
+		time.Sleep(time.Duration(100) * time.Millisecond)
+
+		listener.Close()
+		a.Close()
+	}
+
+	wg.Wait()
+}
 
 func TestSocketSingle(t *testing.T) {
 	listener, _ := net.Listen("tcp", "localhost:5000")
@@ -35,13 +85,7 @@ func TestSocketSingle(t *testing.T) {
 				break
 			}
 
-			fd2, err := listener.Accept()
-			if err != nil {
-				break
-			}
-
 			sock := NewSocket([]net.Conn{fd1})
-			sock.AddSocket(fd2)
 			defer sock.Close()
 
 			buffer := make([]byte, 4096)
@@ -65,7 +109,6 @@ func TestSocketSingle(t *testing.T) {
 			}
 		}
 
-		wg.Done()
 	}()
 
 	{
@@ -89,7 +132,7 @@ func TestSocketSingle(t *testing.T) {
 func TestSocketWriteRead(t *testing.T) {
 	listener, _ := net.Listen("tcp", "localhost:5000")
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(1)
 
 	addr := listener.Addr().String()
 	expected := make([]byte, 48)
@@ -97,42 +140,23 @@ func TestSocketWriteRead(t *testing.T) {
 
 	go func() {
 
-		for {
-			fd1, err := listener.Accept()
-			if err != nil {
-				break
-			}
+		fd1, err := listener.Accept()
+		assert.Equal(t, nil, err)
 
-			fd2, err := listener.Accept()
-			if err != nil {
-				break
-			}
+		fd2, err := listener.Accept()
+		assert.Equal(t, nil, err)
 
-			sock := NewSocket([]net.Conn{fd1})
-			sock.AddSocket(fd2)
-			defer sock.Close()
+		sock := NewSocket([]net.Conn{fd1, fd2})
+		defer sock.Close()
 
-			buffer := make([]byte, 4096)
+		buffer := make([]byte, 4096)
 
-			for {
+		n, err := sock.Read(buffer)
 
-				n, err := sock.Read(buffer)
-				if err == errSesisonClosed {
-					break
-				}
+		assert.Equal(t, nil, err)
 
-				assert.Equal(t, nil, err)
-
-				if n == 0 {
-					break
-				}
-
-				assert.Equal(t, len(expected), n)
-				assert.Equal(t, expected, buffer[0:n])
-				wg.Done()
-			}
-		}
-
+		assert.Equal(t, len(expected), n)
+		assert.Equal(t, expected, buffer[0:n])
 		wg.Done()
 	}()
 
@@ -179,29 +203,17 @@ func TestSocketReadMirrorDelay(t *testing.T) {
 				break
 			}
 
-			sock := NewSocket([]net.Conn{fd1})
-			sock.AddSocket(fd2)
+			sock := NewSocket([]net.Conn{fd1, fd2})
 			defer sock.Close()
 
 			buffer := make([]byte, 4096)
 
-			for {
+			n, err := sock.Read(buffer)
+			assert.Equal(t, nil, err)
 
-				n, err := sock.Read(buffer)
-				if err == errSesisonClosed {
-					break
-				}
-
-				assert.Equal(t, nil, err)
-
-				if n == 0 {
-					break
-				}
-
-				assert.Equal(t, len(expected), n)
-				assert.Equal(t, expected, buffer[0:n])
-				wg.Done()
-			}
+			assert.Equal(t, len(expected), n)
+			assert.Equal(t, expected, buffer[0:n])
+			wg.Done()
 		}
 
 		wg.Done()
@@ -213,11 +225,12 @@ func TestSocketReadMirrorDelay(t *testing.T) {
 		b, err := net.Dial("tcp", addr)
 		assert.Equal(t, nil, err)
 
-		wData, err := proto.Marshal(&resi.Packet{
+		buffer := proto.NewBuffer([]byte{})
+		_ = buffer.EncodeMessage(&resi.Packet{
 			Sn:   0,
 			Data: expected,
 		})
-		assert.Equal(t, nil, err)
+		wData := buffer.Bytes()
 
 		n, err := a.Write(wData)
 		assert.Equal(t, nil, err)
@@ -242,7 +255,7 @@ func TestSocketReadMirrorDelay(t *testing.T) {
 func TestSocketWriteReadBig(t *testing.T) {
 	listener, _ := net.Listen("tcp", "localhost:5000")
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(1)
 
 	addr := listener.Addr().String()
 	expected := make([]byte, 16*1024*2)
@@ -250,44 +263,23 @@ func TestSocketWriteReadBig(t *testing.T) {
 
 	go func() {
 
-		for {
-			fd1, err := listener.Accept()
-			if err != nil {
-				break
-			}
+		fd1, err := listener.Accept()
+		assert.Equal(t, nil, err)
+		fd2, err := listener.Accept()
+		assert.Equal(t, nil, err)
 
-			fd2, err := listener.Accept()
-			if err != nil {
-				break
-			}
+		sock := NewSocket([]net.Conn{fd1, fd2})
+		defer sock.Close()
 
-			sock := NewSocket([]net.Conn{fd1})
-			sock.AddSocket(fd2)
-			defer sock.Close()
+		buffer := make([]byte, 16*1024*2)
+		ptr := 0
 
-			buffer := make([]byte, 16*1024*2)
-			ptr := 0
+		n, err := sock.Read(buffer[ptr:])
+		assert.Equal(t, nil, err)
 
-			for {
-
-				n, err := sock.Read(buffer[ptr:])
-				if err == errSesisonClosed {
-					break
-				}
-
-				assert.Equal(t, nil, err)
-
-				if n == 0 {
-					break
-				}
-
-				assert.Equal(t, 16*1024, n)
-				assert.Equal(t, expected, buffer[ptr:ptr+n])
-				ptr = ptr + n
-			}
-
-			wg.Done()
-		}
+		assert.Equal(t, 2*16*1024, n)
+		assert.Equal(t, expected, buffer[ptr:ptr+n])
+		ptr = ptr + n
 
 		wg.Done()
 	}()
@@ -301,11 +293,7 @@ func TestSocketWriteReadBig(t *testing.T) {
 		assoc := NewSocket([]net.Conn{a, b})
 		n, err := assoc.Write(expected)
 		assert.Equal(t, nil, err)
-		assert.Equal(t, 16*1024, n)
-
-		n, err = assoc.Write(expected[n:])
-		assert.Equal(t, nil, err)
-		assert.Equal(t, 16*1024, n)
+		assert.Equal(t, 2*16*1024, n)
 
 		time.Sleep(time.Duration(100) * time.Millisecond)
 
@@ -320,7 +308,7 @@ func TestSocketWriteReadBig(t *testing.T) {
 func TestSocketPingPong(t *testing.T) {
 	listener, _ := net.Listen("tcp", "localhost:5000")
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(1)
 
 	addr := listener.Addr().String()
 	expected := make([]byte, rand.Intn(16*1024))
@@ -328,42 +316,23 @@ func TestSocketPingPong(t *testing.T) {
 
 	go func() {
 
-		for {
-			fd1, err := listener.Accept()
-			if err != nil {
-				break
-			}
+		fd1, err := listener.Accept()
+		assert.Equal(t, nil, err)
 
-			fd2, err := listener.Accept()
-			if err != nil {
-				break
-			}
+		fd2, err := listener.Accept()
+		assert.Equal(t, nil, err)
 
-			sock := NewSocket([]net.Conn{fd1})
-			sock.AddSocket(fd2)
-			defer sock.Close()
+		sock := NewSocket([]net.Conn{fd1, fd2})
+		defer sock.Close()
 
-			buffer := make([]byte, 16*1024)
+		buffer := make([]byte, 16*1024)
 
-			for {
-				n, err := sock.Read(buffer)
-				if err == errSesisonClosed {
-					break
-				}
+		n, err := sock.Read(buffer)
 
-				assert.Equal(t, nil, err)
+		assert.Equal(t, nil, err)
 
-				if n == 0 {
-					break
-				}
-
-				n, err = sock.Write(buffer[:n])
-				assert.Equal(t, nil, err)
-			}
-
-			wg.Done()
-		}
-
+		n, err = sock.Write(buffer[:n])
+		assert.Equal(t, nil, err)
 		wg.Done()
 	}()
 
@@ -553,7 +522,8 @@ func TestSocketAbsorb(t *testing.T) {
 
 func TestSocketGRPC(t *testing.T) {
 
-	a, _ := net.Listen("tcp", "localhost:6000")
+	a, err := net.Listen("tcp", "localhost:6000")
+	assert.Equal(t, nil, err)
 
 	time.Sleep(time.Duration(100) * time.Millisecond)
 
@@ -589,6 +559,8 @@ func TestSocketGRPC(t *testing.T) {
 	aConn, err := net.Dial("tcp", a.Addr().String())
 	assert.Equal(t, nil, err)
 	aAssoc := NewSocket([]net.Conn{aConn})
+
+	//aAssoc.Debug = true
 
 	aOpt := grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
 		return aAssoc, nil
@@ -651,8 +623,6 @@ func TestSocketSwitchGRPC(t *testing.T) {
 	assert.Equal(t, nil, err)
 	aAssoc := NewSocket([]net.Conn{aConn})
 
-	//aAssoc.Debug = true
-
 	bConn, err := net.Dial("tcp", b.Addr().String())
 	assert.Equal(t, nil, err)
 	bAssoc := NewSocket([]net.Conn{bConn})
@@ -679,7 +649,6 @@ func TestSocketSwitchGRPC(t *testing.T) {
 	resp, err := aC.SayHello(context.Background(), &helloworld.HelloRequest{
 		Name: "Thomas",
 	})
-	log.Printf("%v\n", err)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "hello world", resp.Message)
 
@@ -688,9 +657,10 @@ func TestSocketSwitchGRPC(t *testing.T) {
 	resp, err = bC.SayHello(context.Background(), &helloworld.HelloRequest{
 		Name: "Thomas",
 	})
-	log.Printf("%v\n", err)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "hello world", resp.Message)
+
+	time.Sleep(100 * time.Millisecond)
 
 	aAssoc.Absorb(bAssoc)
 	tester.Absorb()
@@ -698,11 +668,8 @@ func TestSocketSwitchGRPC(t *testing.T) {
 	resp, err = aC.SayHello(context.Background(), &helloworld.HelloRequest{
 		Name: "Thomas",
 	})
-	log.Printf("%v\n", err)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "hello world", resp.Message)
-
-	log.Println("FINISH")
 
 	l.Close()
 

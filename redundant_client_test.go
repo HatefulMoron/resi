@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"log"
 	"net"
 	"testing"
 
@@ -106,6 +107,9 @@ func TestRedundantClientBoth(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	data := []byte{1, 2, 3, 4, 5}
+
+	log.Println("==================================")
+
 	resp, err := client.Inner().Test(context.Background(), &protos.TestRequest{
 		Ext:  nil,
 		Data: data,

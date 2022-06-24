@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/sha256"
+	"bytes"
 	"errors"
 	"log"
 	"net"
@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	protos "github.com/hatefulmoron/resi/protos"
 	resi "github.com/hatefulmoron/resi/protos"
 )
 
@@ -36,47 +37,193 @@ type WriteOperation struct {
 	status chan WriteStatus
 }
 
+type BufferedChunk struct {
+	data  []byte
+	conns []*ConnObserver
+}
+
 type Socket struct {
-	sockets     []net.Conn
-	lock        sync.Mutex
-	rdLock      sync.Mutex
-	sn          uint64
-	rsn         uint64
-	writeCh     chan WriteOperation
-	closed      bool
-	closeAbsorb chan struct{}
-	absorbed    bool
-	Debug       bool
+	lock       sync.Mutex
+	sockets    []*ConnObserver
+	buffered   map[uint64]*BufferedChunk
+	inflight   []byte
+	flightLock sync.Mutex
+	flightCond *sync.Cond
+	tsn        uint64
+	Debug      bool
 }
 
 func NewSocket(sockets []net.Conn) *Socket {
+
 	sock := &Socket{
-		sockets:     sockets,
-		sn:          0,
-		rsn:         0,
-		writeCh:     make(chan WriteOperation),
-		closed:      false,
-		closeAbsorb: make(chan struct{}),
-		absorbed:    false,
-		Debug:       false,
+		sockets:  make([]*ConnObserver, len(sockets)),
+		inflight: make([]byte, 0),
+		buffered: make(map[uint64]*BufferedChunk),
+		tsn:      0,
 	}
 
-	go sock.writeRoutine()
+	sock.flightCond = sync.NewCond(&sock.flightLock)
+
+	for i := range sockets {
+		sock.sockets[i] = NewConnObserver(sockets[i],
+			128*1024,
+			sock.formatWrite,
+			sock.formatRead,
+			sock.handleClose)
+	}
+
 	return sock
 }
 
 func (a *Socket) Absorb(b *Socket) {
-
-	if a.sn != b.sn {
-		log.Printf("a: %d\nb: %d\n", a.sn, b.sn)
-		panic("incorrect usage")
-	}
+	a.lock.Lock()
+	defer a.lock.Unlock()
+	b.lock.Lock()
+	defer b.lock.Unlock()
 
 	for _, fd := range b.sockets {
-		a.sockets = append(a.sockets, fd)
+		fd.WriteObserver = a.formatWrite
+		fd.ReadObserver = a.formatRead
+		fd.CloseObserver = a.handleClose
+	}
+	a.sockets = append(a.sockets, b.sockets...)
+	b.sockets = []*ConnObserver{}
+}
+
+func (a *Socket) formatWrite(conn *ConnObserver, data []byte) []byte {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	if len(a.sockets) == 1 {
+		return data
+	} else {
+		tsn := a.tsn
+
+		buffer := proto.NewBuffer([]byte{})
+		_ = buffer.EncodeMessage(&protos.Packet{
+			Sn:   tsn,
+			Data: data,
+		})
+		return buffer.Bytes()
+	}
+}
+
+func (a *Socket) receivedChunk(
+	conn *ConnObserver,
+	pkt *protos.Packet,
+) ([]byte, error) {
+	chunk, ok := a.buffered[pkt.Sn]
+	if !ok {
+		a.buffered[pkt.Sn] = &BufferedChunk{
+			data:  pkt.Data,
+			conns: []*ConnObserver{conn},
+		}
+		return nil, nil
 	}
 
-	b.absorbed = true
+	// if already contains this conn, the other side of the connection is not
+	// doing its job correctly
+	for _, v := range chunk.conns {
+		if v == conn {
+			panic("todo")
+		}
+	}
+
+	chunk.conns = append(chunk.conns, conn)
+
+	// is the data incorrect?
+	if !bytes.Equal(pkt.Data, chunk.data) {
+		panic("todo bad data")
+	}
+
+	// do we have all data? if yes, return it
+	if len(chunk.conns) == len(a.sockets) {
+		return chunk.data, nil
+	} else {
+		return nil, nil
+	}
+}
+
+func (a *Socket) formatRead(conn *ConnObserver, data []byte) ([]byte, error) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	if len(a.sockets) == 1 {
+
+		if a.Debug {
+			log.Printf("adding %d\n", len(data))
+		}
+
+		a.flightLock.Lock()
+		a.inflight = append(a.inflight, data...)
+
+		a.flightCond.Signal()
+		a.flightLock.Unlock()
+
+		if a.Debug {
+			log.Println("signalled")
+		}
+
+		return []byte{}, nil
+	} else {
+		var pkt protos.Packet
+		buffer := proto.NewBuffer(data)
+
+		orig := make([]byte, len(data))
+		copy(orig, data)
+
+		nRead := 0
+
+		for {
+			if len(buffer.Unread()) == 0 {
+				break
+			}
+
+			before := len(buffer.Unread())
+
+			err := buffer.DecodeMessage(&pkt)
+			if err != nil {
+				break
+			}
+
+			nRead += before - len(buffer.Unread())
+
+			if pkt.Data != nil {
+
+				data, err := a.receivedChunk(conn, &pkt)
+				if err != nil {
+					panic(err) // TODO
+				}
+
+				if a.Debug {
+					log.Printf("read pkt [sn: %d, %d] - %v %v\n", pkt.Sn, len(pkt.Data), data, err)
+				}
+
+				if data != nil {
+					a.flightLock.Lock()
+					a.inflight = append(a.inflight, data...)
+					a.flightLock.Unlock()
+
+					if a.Debug {
+						log.Printf("appended %d\n", len(data))
+					}
+
+					a.flightCond.Signal()
+				}
+
+				pkt.Reset()
+			}
+		}
+
+		return orig[nRead:], nil
+	}
+}
+
+func (a *Socket) handleClose(conn *ConnObserver, fd net.Conn) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	panic("todo")
 }
 
 func (addr SocketAddr) Network() string {
@@ -88,284 +235,75 @@ func (addr SocketAddr) String() string {
 }
 
 func (a *Socket) DropSocket(fd net.Conn) error {
-	a.lock.Lock()
-	defer a.lock.Unlock()
-
-	for i, sock := range a.sockets {
-		if sock == fd {
-			a.sockets[i] = a.sockets[len(a.sockets)-1]
-			a.sockets = a.sockets[:len(a.sockets)-1]
-
-			err := sock.Close()
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	panic("todo")
 }
 
 func (a *Socket) AddSocket(fd net.Conn) {
-	a.sockets = append(a.sockets, fd)
+	a.sockets = append(a.sockets,
+		NewConnObserver(fd, 128*1024, a.formatWrite, a.formatRead, a.handleClose))
 }
 
 func (a *Socket) Read(b []byte) (n int, err error) {
-
-	a.rdLock.Lock()
-	defer a.rdLock.Unlock()
-
 	if a.Debug {
-		log.Println("=== starting read")
+		log.Println("enter")
+		defer log.Println("exit")
 	}
 
-	if a.absorbed {
-		_, _ = <-a.closeAbsorb
-		return 0, errors.New("closed")
+	//for {
+	//	a.fragLock.Lock()
+	//	if len(a.fragments) > 0 {
+	//		//a.fragLock.Unlock()
+	//		break
+	//	}
+
+	//	a.fragLock.Unlock()
+	//	time.Sleep(10 * time.Millisecond)
+
+	//}
+
+	a.flightLock.Lock()
+	for len(a.inflight) == 0 {
+		a.flightCond.Wait()
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(a.sockets))
-
-	datas := make([]*ReadStatus, len(a.sockets))
-
-	for i, fd := range a.sockets {
-		lI := i
-		lFd := fd
-		go func() {
-
-			// While we don't have a full packet, read the fd
-			buf := make([]byte, maxPacketSize)
-			ptr := 0
-			defer func() {
-				wg.Done()
-			}()
-
-			for {
-				if a.Debug {
-					log.Printf("inner %s: waiting\n", lFd.LocalAddr().String())
-				}
-				n, err := lFd.Read(buf[ptr:])
-
-				if a.Debug {
-					log.Printf("inner %s: %d %v\n", lFd.LocalAddr().String(), n, err)
-				}
-
-				if err != nil {
-
-					if a.Debug {
-						log.Printf("dropping: %v\n", err)
-					}
-
-					a.DropSocket(lFd) // TODO
-					break
-				} else if n == 0 && err == nil {
-					break
-				}
-
-				if len(a.sockets) > 1 {
-
-					var pkt resi.Packet
-					err = proto.Unmarshal(buf[:ptr+n], &pkt)
-					if err == nil && n == 0 {
-						break
-					} else if err == nil {
-						datas[lI] = &ReadStatus{
-							fd:  lFd,
-							pkt: &pkt,
-						}
-						break
-					}
-				} else {
-
-					datas[lI] = &ReadStatus{
-						fd: lFd,
-						pkt: &resi.Packet{
-							Sn:   0,
-							Data: buf[:ptr+n],
-						},
-					}
-					break
-
-				}
-
-				ptr += n
-			}
-		}()
+	// fragLock locked, fragments has data
+	readLen := len(a.inflight)
+	if readLen > len(b) {
+		readLen = len(b)
 	}
 
-	wg.Wait()
-
-	var checksum *[32]byte
-	checksum = nil
-
-	for _, v := range datas {
-		if v != nil {
-			check := sha256.Sum256(v.pkt.Data)
-
-			if checksum == nil {
-				checksum = &check
-				continue
-			} else {
-				if check != *checksum {
-					if a.Debug {
-						log.Println("read: 0 incorrectdata")
-					}
-					return 0, errors.New("mirror: incorrect data")
-				}
-			}
-		}
+	copy(b, a.inflight[:readLen])
+	if readLen == len(a.inflight) {
+		a.inflight = make([]byte, 0)
+	} else {
+		a.inflight = a.inflight[readLen:]
 	}
 
-	if checksum == nil {
-		if len(a.sockets) == 0 {
-			if a.Debug {
-				log.Println("read: 0 closed")
-			}
-			return 0, errSesisonClosed
-		} else {
-			if a.Debug {
-				log.Println("read: 0 nil")
-			}
-			return 0, nil
-		}
-	}
-
-	copy(b, datas[0].pkt.Data)
-
-	if a.Debug {
-		log.Printf("%s: read: %d nil\n", a.sockets[0].LocalAddr().String(), len(datas[0].pkt.Data))
-	}
-
-	return len(datas[0].pkt.Data), nil
-}
-
-func (a *Socket) writeRoutine() {
-	for {
-		op, ok := <-a.writeCh
-		if !ok {
-			return
-		}
-
-		n := len(a.sockets)
-
-		if a.Debug {
-			log.Printf("<<< %d\n", len(a.writeCh))
-			log.Printf("doing write with %d\n", n)
-		}
-
-		var wg sync.WaitGroup
-		wg.Add(n)
-
-		var wData []byte
-		var err error
-
-		if len(a.sockets) > 1 {
-
-			sn := a.sn
-			a.sn = a.sn + 1
-
-			wData, err = proto.Marshal(&resi.Packet{
-				Sn:   sn,
-				Data: op.data,
-			})
-			if err != nil {
-				op.status <- WriteStatus{
-					n:   0,
-					err: err,
-				}
-				continue
-			}
-
-		} else {
-
-			wData = op.data
-
-		}
-
-		// Try to write to all sockets
-		for _, fd := range a.sockets {
-			lfd := fd
-			go func() {
-				defer wg.Done()
-
-				ptr := 0
-				for {
-					if ptr == len(wData) {
-						break
-					}
-
-					n, err := lfd.Write(wData[ptr:])
-					if err != nil {
-						a.Close()
-						return
-					}
-
-					ptr += n
-				}
-
-			}()
-		}
-
-		if a.Debug {
-			log.Println("waiting on write")
-		}
-		wg.Wait()
-		if a.Debug {
-			log.Println("write done")
-		}
-
-		op.status <- WriteStatus{
-			n:   len(op.data),
-			err: nil,
-		}
-		if a.Debug {
-			log.Println("write status sent")
-		}
-	}
+	// ..
+	a.flightLock.Unlock()
+	return readLen, nil
 }
 
 func (a *Socket) Write(b []byte) (n int, err error) {
-	if a.Debug {
-		log.Printf("starting write for %d\n", len(b))
-	}
-
-	size := len(b)
-	if size > maxPacketSize {
-		size = maxPacketSize
-	}
-
-	resp := make(chan WriteStatus)
-	a.writeCh <- WriteOperation{
-		data:   b[:size],
-		status: resp,
-	}
-
-	status := <-resp
 
 	if a.Debug {
-		log.Printf("write: %d %v\n", status.n, status.err)
+		log.Println("trying to write..")
 	}
 
-	time.Sleep(time.Duration(50) * time.Millisecond)
-
-	return status.n, status.err
-}
-
-func (a *Socket) ReallyClose() error {
-	if !a.closed {
-		a.closed = true
-		close(a.writeCh)
-		close(a.closeAbsorb)
-
-		for _, sock := range a.sockets {
-			err := sock.Close()
-			if err != nil {
-				return err
-			}
+	for i, fd := range a.sockets {
+		if a.Debug {
+			log.Printf("> %d\n", i)
 		}
-		return nil
+		fd.Write(b)
 	}
-	return nil
+
+	a.tsn += 1
+
+	if a.Debug {
+		log.Printf("write %d\n", len(b))
+	}
+
+	return len(b), nil
 }
 
 func (a *Socket) Close() error {

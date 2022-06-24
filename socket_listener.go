@@ -65,6 +65,8 @@ func (l *SocketListener) pumpChannel() {
 
 				sock := NewSocket([]net.Conn{conn})
 
+				//sock.Debug = true
+
 				l.acceptCh <- sock
 
 				if l.acceptObserver != nil {

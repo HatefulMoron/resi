@@ -102,11 +102,19 @@ func (l *ResiListener) Modify(
 			return nil, err
 		}
 
-		masterSocket := l.sockets[resiReq.Cookie]
-		slaveSocket := l.sockets[l.peerMap[peer.Addr.String()]]
+		masterCookie := resiReq.Cookie
+		slaveCookie := l.peerMap[peer.Addr.String()]
+
+		if masterCookie == slaveCookie {
+			panic("todo") // you shouldn't be sending this on this transport..
+		}
+
+		masterSocket := l.sockets[masterCookie]
+		slaveSocket := l.sockets[slaveCookie]
 
 		go func() {
-			time.Sleep(time.Duration(1) * time.Second)
+			time.Sleep(time.Duration(10) * time.Second)
+
 			masterSocket.Absorb(slaveSocket)
 		}()
 

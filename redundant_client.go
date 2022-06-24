@@ -36,6 +36,7 @@ func newBasicClient(addr net.Addr) (net.Conn, protos.EsiClient, error) {
 			func(ctx context.Context, s string) (net.Conn, error) {
 				rawConn, err := net.Dial("tcp", s)
 				conn := NewSocket([]net.Conn{rawConn})
+				//conn.Debug = true
 
 				if err != nil {
 					return nil, err
@@ -53,6 +54,7 @@ func newBasicClient(addr net.Addr) (net.Conn, protos.EsiClient, error) {
 			func(ctx context.Context, s string) (net.Conn, error) {
 				rawConn, err := Dial(s)
 				conn := NewSocket([]net.Conn{rawConn})
+				//conn.Debug = true
 
 				if err != nil {
 					return nil, err
@@ -111,7 +113,7 @@ func (c *RedundantClient) handshake() error {
 	if err != nil {
 		return err
 	}
-	resp, err = c.tcpClient.Modify(context.Background(), &protos.ModifyRequest{
+	resp, err = c.nknClient.Modify(context.Background(), &protos.ModifyRequest{
 		Ext: &protos.Extension{
 			Id:   1,
 			Pass: false,
@@ -122,7 +124,7 @@ func (c *RedundantClient) handshake() error {
 		return err
 	}
 
-	time.Sleep(time.Duration(1) * time.Second)
+	time.Sleep(time.Duration(10) * time.Second)
 
 	(c.tcpConn.(*Socket)).Absorb(c.nknConn.(*Socket))
 
