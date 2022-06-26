@@ -1,7 +1,8 @@
-package main
+package internal
 
 import (
 	"errors"
+	"log"
 	"net"
 	"sync"
 )
@@ -59,13 +60,12 @@ func (l *SocketListener) pumpChannel() {
 				conn, err := lFd.Accept()
 
 				if err != nil {
+					log.Printf("listener [%s] stopping: %v\n", lFd.Addr(), err)
 					l.Close()
 					return
 				}
 
 				sock := NewSocket([]net.Conn{conn})
-
-				//sock.Debug = true
 
 				l.acceptCh <- sock
 

@@ -1,12 +1,15 @@
-package main
+package internal
 
 import (
 	"context"
 	"fmt"
+	"log"
+	"math/rand"
 	"net"
 	"testing"
 
 	helloworld "github.com/hatefulmoron/resi/protos"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -19,6 +22,52 @@ func (s *server) SayHello(ctx context.Context, in *helloworld.HelloRequest) (*he
 	return &helloworld.HelloReply{
 		Message: "hey i got that",
 	}, nil
+}
+
+func TestNKNSession(t *testing.T) {
+
+	listener, err := NewNKNListener()
+	assert.Equal(t, nil, err)
+
+	addr := listener.Addr()
+
+	go func() {
+		fd, err := listener.Accept()
+		assert.Equal(t, nil, err)
+
+		buf := make([]byte, 1024)
+		for i := 0; i < 100; i++ {
+			n, err := fd.Read(buf)
+			if err != nil {
+				break
+			}
+
+			n2, err := fd.Write(buf[:n])
+			assert.Equal(t, nil, err)
+			assert.Equal(t, n, n2)
+		}
+	}()
+
+	fd, err := Dial(addr.String())
+	assert.Equal(t, nil, err)
+
+	for i := 0; i < 50; i++ {
+		log.Printf("%d\n", i)
+		expected := make([]byte, 1024)
+		rand.Read(expected)
+
+		n, err := fd.Write(expected)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, len(expected), n)
+
+		buf := make([]byte, len(expected))
+
+		n, err = fd.Read(buf)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, len(expected), n)
+		assert.Equal(t, expected, buf)
+	}
+
 }
 
 func TestNKNGRPC(t *testing.T) {

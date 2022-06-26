@@ -68,11 +68,13 @@ TOML flavoured configuration file:
 # If the [tcp] section is not configued, RESI will not attempt to use TCP.
 [tcp]
 address = "127.0.0.1:4900" # IPv4 or IPv6
+listen = "localhost:4001"
 
 # If the [nkn] section is not configued, RESI will not attempt to use NKN.
 [nkn]
 address = "919c54b38f907e82f030068c2c4a06239a2941f712306d9409474ebade479208"
-subclients = 3 # See NKN documentation for more details.
+seed = "nknseed"
+subclients = 4 # See NKN documentation for more details.
 
 # RESI specific configuration options
 [resi]
@@ -86,6 +88,7 @@ subclients = 3 # See NKN documentation for more details.
 # of the transports and disregard any duplicate data that arrives in the
 # future.
 mode = "strict"
+
 ```
 
 [1]: https://datatracker.ietf.org/doc/html/rfc4960

@@ -5,7 +5,8 @@ package protos;
 
 message Packet {
   uint64 sn = 1;
-  bytes data = 2;
+  bool upgrade = 2;
+  bytes data = 3;
 }
 
 message RedundancyTSN {

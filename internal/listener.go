@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"context"
@@ -112,9 +112,16 @@ func (l *ResiListener) Modify(
 		masterSocket := l.sockets[masterCookie]
 		slaveSocket := l.sockets[slaveCookie]
 
-		go func() {
-			time.Sleep(time.Duration(10) * time.Second)
+		log.Printf("absorbing %s into %s\n", slaveCookie, masterCookie)
 
+		//masterSocket.AbsorbCb = func(master *Socket) error {
+		//	log.Println("slkdjlsjfd")
+		//	master.RawAbsorb(slaveSocket)
+		//	return nil
+		//}
+
+		go func() {
+			time.Sleep(5 * time.Second)
 			masterSocket.Absorb(slaveSocket)
 		}()
 

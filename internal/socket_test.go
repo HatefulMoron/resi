@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"bytes"
@@ -520,7 +520,69 @@ func TestSocketAbsorb(t *testing.T) {
 	time.Sleep(time.Duration(100) * time.Millisecond)
 }
 
-func TestSocketGRPC(t *testing.T) {
+func TestSocketGRPCNKN(t *testing.T) {
+	a, err := NewNKNListener()
+	assert.Equal(t, nil, err)
+
+	time.Sleep(time.Duration(100) * time.Millisecond)
+
+	expected := make([]byte, 512)
+	rand.Read(expected)
+
+	fdCh := make(chan net.Conn, 2)
+	l := NewSocketListener([]net.Listener{a})
+	l.SetAcceptObserver(fdCh)
+
+	s := grpc.NewServer()
+	tester := &upgradeTestServer{}
+
+	go func() {
+
+		go func() {
+			for {
+				fd, ok := <-fdCh
+				if !ok {
+					break
+				}
+
+				tester.sockets = append(tester.sockets, fd.(*Socket))
+			}
+		}()
+
+		helloworld.RegisterGreeterServer(s, tester)
+		if err := s.Serve(l); err != nil {
+			return
+		}
+	}()
+
+	aConn, err := Dial(a.Addr().String())
+	assert.Equal(t, nil, err)
+	aAssoc := NewSocket([]net.Conn{aConn})
+
+	//aAssoc.Debug = true
+
+	aOpt := grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
+		return aAssoc, nil
+	})
+
+	aGrpcConn, err := grpc.Dial("", aOpt,
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	assert.Equal(t, nil, err)
+
+	aC := helloworld.NewGreeterClient(aGrpcConn)
+
+	resp, err := aC.SayHello(context.Background(), &helloworld.HelloRequest{
+		Name: "Thomas",
+	})
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "hello world", resp.Message)
+
+	l.Close()
+
+	time.Sleep(time.Duration(100) * time.Millisecond)
+}
+
+func TestSocketGRPCTCP(t *testing.T) {
 
 	a, err := net.Listen("tcp", "localhost:6000")
 	assert.Equal(t, nil, err)
@@ -636,6 +698,7 @@ func TestSocketSwitchGRPC(t *testing.T) {
 
 	aGrpcConn, err := grpc.Dial("", aOpt,
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
+
 	assert.Equal(t, nil, err)
 	bGrpcConn, err := grpc.Dial("", bOpt,
 		grpc.WithTransportCredentials(insecure.NewCredentials()))

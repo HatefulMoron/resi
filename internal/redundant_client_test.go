@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"testing"
+	"time"
 
 	protos "github.com/hatefulmoron/resi/protos"
 	"github.com/stretchr/testify/assert"
@@ -34,8 +35,8 @@ func TestRedundantClientVanillaNKN(t *testing.T) {
 	nkn_addr := (<-c).String()
 
 	client, err := RedundantDial(RedunantAddr{
-		tcp: nil,
-		nkn: &nkn_addr,
+		Tcp: nil,
+		Nkn: &nkn_addr,
 	})
 	assert.Equal(t, nil, err)
 
@@ -72,8 +73,8 @@ func TestRedundantClientVanillaTCP(t *testing.T) {
 	addr := (<-c).String()
 
 	client, err := RedundantDial(RedunantAddr{
-		tcp: &addr,
-		nkn: nil,
+		Tcp: &addr,
+		Nkn: nil,
 	})
 	assert.Equal(t, nil, err)
 
@@ -90,19 +91,21 @@ func TestRedundantClientVanillaTCP(t *testing.T) {
 
 func TestRedundantClientBoth(t *testing.T) {
 	l, err := NewResiListener(SocketAddr{
-		network: "tcp",
-		str:     "127.0.0.1:7000",
+		Net: "tcp",
+		Str: "127.0.0.1:7000",
 	})
 	assert.Equal(t, nil, err)
 
 	go l.Serve()
 
+	time.Sleep(time.Second)
+
 	tcpAddr := l.TcpAddr().String()
 	nknAddr := l.NKNAddr().String()
 
 	client, err := RedundantDial(RedunantAddr{
-		tcp: &tcpAddr,
-		nkn: &nknAddr,
+		Tcp: &tcpAddr,
+		Nkn: &nknAddr,
 	})
 	assert.Equal(t, nil, err)
 

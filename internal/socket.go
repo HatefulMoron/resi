@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"bytes"
@@ -18,8 +18,8 @@ var errSesisonClosed = errors.New("session closed")
 const maxPacketSize = 16 * 1024
 
 type SocketAddr struct {
-	network string
-	str     string
+	Net string
+	Str string
 }
 
 type WriteStatus struct {
@@ -118,6 +118,7 @@ func (a *Socket) receivedChunk(
 			data:  pkt.Data,
 			conns: []*ConnObserver{conn},
 		}
+
 		return nil, nil
 	}
 
@@ -137,6 +138,7 @@ func (a *Socket) receivedChunk(
 	}
 
 	// do we have all data? if yes, return it
+
 	if len(chunk.conns) == len(a.sockets) {
 		return chunk.data, nil
 	} else {
@@ -227,11 +229,11 @@ func (a *Socket) handleClose(conn *ConnObserver, fd net.Conn) {
 }
 
 func (addr SocketAddr) Network() string {
-	return addr.network
+	return addr.Net
 }
 
 func (addr SocketAddr) String() string {
-	return addr.str
+	return addr.Str
 }
 
 func (a *Socket) DropSocket(fd net.Conn) error {
@@ -323,12 +325,28 @@ func (a *Socket) Close() error {
 	return nil
 }
 
+func (a *Socket) LocalAddrs() []net.Addr {
+	ret := make([]net.Addr, len(a.sockets))
+	for i, v := range a.sockets {
+		ret[i] = v.LocalAddr()
+	}
+	return ret
+}
+
 func (a *Socket) LocalAddr() net.Addr {
-	return a.sockets[0].LocalAddr()
+	if len(a.sockets) > 0 {
+		return a.sockets[0].LocalAddr()
+	} else {
+		return nil
+	}
 }
 
 func (a *Socket) RemoteAddr() net.Addr {
-	return a.sockets[0].RemoteAddr()
+	if len(a.sockets) > 0 {
+		return a.sockets[0].RemoteAddr()
+	} else {
+		return nil
+	}
 }
 
 func (a *Socket) SetDeadline(t time.Time) error {

@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"context"
@@ -44,8 +44,8 @@ func vanillaNKN(l *ResiListener, t *testing.T) {
 
 func TestListenerVanillaTCP(t *testing.T) {
 	l, err := NewResiListener(SocketAddr{
-		network: "tcp",
-		str:     "127.0.0.1:7000",
+		Net: "tcp",
+		Str: "127.0.0.1:7000",
 	})
 	assert.Equal(t, nil, err)
 
@@ -57,8 +57,8 @@ func TestListenerVanillaTCP(t *testing.T) {
 
 func TestListenerVanillaNKN(t *testing.T) {
 	l, err := NewResiListener(SocketAddr{
-		network: "tcp",
-		str:     "127.0.0.1:7000",
+		Net: "tcp",
+		Str: "127.0.0.1:7000",
 	})
 	assert.Equal(t, nil, err)
 
@@ -70,8 +70,8 @@ func TestListenerVanillaNKN(t *testing.T) {
 
 func TestListenerVanillaBoth(t *testing.T) {
 	l, err := NewResiListener(SocketAddr{
-		network: "tcp",
-		str:     "127.0.0.1:7000",
+		Net: "tcp",
+		Str: "127.0.0.1:7000",
 	})
 	assert.Equal(t, nil, err)
 

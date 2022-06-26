@@ -1,9 +1,11 @@
-package main
+package internal
 
 import (
-	"github.com/nknorg/nkn-sdk-go"
 	"net"
 	"time"
+
+	"github.com/nknorg/ncp-go"
+	"github.com/nknorg/nkn-sdk-go"
 )
 
 type NKNListener struct {
@@ -18,10 +20,12 @@ type NKNConn struct {
 }
 
 func (c *NKNConn) Read(b []byte) (n int, err error) {
+	time.Sleep(10 * time.Millisecond)
 	return c.session.Read(b)
 }
 
 func (c *NKNConn) Write(b []byte) (n int, err error) {
+	time.Sleep(10 * time.Millisecond)
 	return c.session.Write(b)
 }
 
@@ -50,12 +54,21 @@ func (c *NKNConn) SetWriteDeadline(t time.Time) error {
 }
 
 func NewNKNListener() (*NKNListener, error) {
+	ncpConfig := &ncp.Config{
+		NonStream: false,
+	}
+	config := &nkn.ClientConfig{
+		//RPCConcurrency: 8,
+		SessionConfig:  ncpConfig,
+		ConnectRetries: 1,
+	}
+
 	account, err := nkn.NewAccount(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	mc, err := nkn.NewMultiClient(account, "", 3, true, nil)
+	mc, err := nkn.NewMultiClient(account, "", 4, false, config)
 	if err != nil {
 		return nil, err
 	}
@@ -86,19 +99,35 @@ func (l *NKNListener) Addr() net.Addr {
 }
 
 func Dial(addr string) (*NKNConn, error) {
+
+	ncpConfig := &ncp.Config{
+		NonStream: false,
+	}
+	config := &nkn.ClientConfig{
+		//RPCConcurrency: 8,
+		SessionConfig:  ncpConfig,
+		ConnectRetries: 1,
+	}
+	dialConfig := &nkn.DialConfig{
+		DialTimeout: 5000,
+	}
+
 	account, err := nkn.NewAccount(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	mc, err := nkn.NewMultiClient(account, "", 3, true, nil)
+	mc, err := nkn.NewMultiClient(account, "", 4, false, config)
 	if err != nil {
 		return nil, err
 	}
 
 	<-mc.OnConnect.C
 
-	session, err := mc.Dial(addr)
+	session, err := mc.DialWithConfig(addr, dialConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	return &NKNConn{
 		account: account,

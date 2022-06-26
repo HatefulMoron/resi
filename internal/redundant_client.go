@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"context"
@@ -22,8 +22,8 @@ type RedundantClient struct {
 }
 
 type RedunantAddr struct {
-	tcp *string
-	nkn *string
+	Tcp *string
+	Nkn *string
 }
 
 func newBasicClient(addr net.Addr) (net.Conn, protos.EsiClient, error) {
@@ -35,9 +35,11 @@ func newBasicClient(addr net.Addr) (net.Conn, protos.EsiClient, error) {
 		tcp_opt := grpc.WithContextDialer(
 			func(ctx context.Context, s string) (net.Conn, error) {
 				rawConn, err := net.Dial("tcp", s)
-				conn := NewSocket([]net.Conn{rawConn})
-				//conn.Debug = true
+				if err != nil {
+					return nil, err
+				}
 
+				conn := NewSocket([]net.Conn{rawConn})
 				if err != nil {
 					return nil, err
 				}
@@ -53,9 +55,11 @@ func newBasicClient(addr net.Addr) (net.Conn, protos.EsiClient, error) {
 		nkn_opt := grpc.WithContextDialer(
 			func(ctx context.Context, s string) (net.Conn, error) {
 				rawConn, err := Dial(s)
-				conn := NewSocket([]net.Conn{rawConn})
-				//conn.Debug = true
+				if err != nil {
+					return nil, err
+				}
 
+				conn := NewSocket([]net.Conn{rawConn})
 				if err != nil {
 					return nil, err
 				}
@@ -106,6 +110,7 @@ func (c *RedundantClient) handshake() error {
 	}
 
 	log.Printf("cookie: %s\n", cookieResp.Cookie)
+	log.Println("asking for merging")
 
 	wData, err = proto.Marshal(&protos.RedundancyMergeRequest{
 		Cookie: cookieResp.Cookie,
@@ -124,8 +129,7 @@ func (c *RedundantClient) handshake() error {
 		return err
 	}
 
-	time.Sleep(time.Duration(10) * time.Second)
-
+	time.Sleep(5 * time.Second)
 	(c.tcpConn.(*Socket)).Absorb(c.nknConn.(*Socket))
 
 	return nil
@@ -143,10 +147,11 @@ func RedundantDial(addr RedunantAddr) (*RedundantClient, error) {
 	tcpClient = nil
 	nknClient = nil
 
-	if addr.tcp != nil {
+	if addr.Tcp != nil {
+		log.Println("conn tcp")
 		tcpConn, tcpClient, err = newBasicClient(&SocketAddr{
-			network: "tcp",
-			str:     *addr.tcp,
+			Net: "tcp",
+			Str: *addr.Tcp,
 		})
 
 		if err != nil {
@@ -154,10 +159,11 @@ func RedundantDial(addr RedunantAddr) (*RedundantClient, error) {
 		}
 	}
 
-	if addr.nkn != nil {
+	if addr.Nkn != nil {
+		log.Println("conn nkn")
 		nknConn, nknClient, err = newBasicClient(&SocketAddr{
-			network: "nkn",
-			str:     *addr.nkn,
+			Net: "nkn",
+			Str: *addr.Nkn,
 		})
 
 		if err != nil {
@@ -166,7 +172,7 @@ func RedundantDial(addr RedunantAddr) (*RedundantClient, error) {
 	}
 
 	if tcpConn == nil && nknConn == nil {
-		panic(*addr.tcp)
+		panic(*addr.Tcp)
 	}
 
 	client := &RedundantClient{
@@ -182,11 +188,14 @@ func RedundantDial(addr RedunantAddr) (*RedundantClient, error) {
 			return nil, err
 		}
 		client.inner = tcpClient
+		log.Println("inner tcp (combined)")
 	} else {
 		if tcpConn != nil {
 			client.inner = tcpClient
+			log.Println("inner tcp")
 		} else {
 			client.inner = nknClient
+			log.Println("inner nkn")
 		}
 	}
 
@@ -195,4 +204,17 @@ func RedundantDial(addr RedunantAddr) (*RedundantClient, error) {
 
 func (c *RedundantClient) Inner() protos.EsiClient {
 	return c.inner
+}
+
+func (c *RedundantClient) Addrs() []net.Addr {
+	ret := make([]net.Addr, 0)
+
+	if c.tcpConn != nil {
+		ret = append(ret, c.tcpConn.(*Socket).LocalAddrs()...)
+	}
+	if c.nknConn != nil {
+		ret = append(ret, c.nknConn.(*Socket).LocalAddrs()...)
+	}
+
+	return ret
 }
