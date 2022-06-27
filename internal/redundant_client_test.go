@@ -19,7 +19,7 @@ func TestRedundantClientVanillaNKN(t *testing.T) {
 
 	go func() {
 
-		listener, err := NewNKNListener()
+		listener, err := NewNKNListener("039e481266e5a05168c1d834a94db512dbc235877f150c5a3cc1e3903672c683")
 		if err != nil {
 			panic(err)
 		}
@@ -32,11 +32,8 @@ func TestRedundantClientVanillaNKN(t *testing.T) {
 		}
 	}()
 
-	nkn_addr := (<-c).String()
-
 	client, err := RedundantDial(RedunantAddr{
-		Tcp: nil,
-		Nkn: &nkn_addr,
+		Nkn: <-c,
 	})
 	assert.Equal(t, nil, err)
 
@@ -70,11 +67,8 @@ func TestRedundantClientVanillaTCP(t *testing.T) {
 		}
 	}()
 
-	addr := (<-c).String()
-
 	client, err := RedundantDial(RedunantAddr{
-		Tcp: &addr,
-		Nkn: nil,
+		Tcp: <-c,
 	})
 	assert.Equal(t, nil, err)
 
@@ -90,22 +84,20 @@ func TestRedundantClientVanillaTCP(t *testing.T) {
 }
 
 func TestRedundantClientBoth(t *testing.T) {
-	l, err := NewResiListener(SocketAddr{
-		Net: "tcp",
-		Str: "127.0.0.1:7000",
-	})
+	l, err := NewResiListener(ResiListenerOptions{
+		Tcp: SocketAddr{
+			Net: "tcp",
+			Str: "127.0.0.1:7000",
+		}})
 	assert.Equal(t, nil, err)
 
 	go l.Serve()
 
 	time.Sleep(time.Second)
 
-	tcpAddr := l.TcpAddr().String()
-	nknAddr := l.NKNAddr().String()
-
 	client, err := RedundantDial(RedunantAddr{
-		Tcp: &tcpAddr,
-		Nkn: &nknAddr,
+		Tcp: l.TcpAddr(),
+		Nkn: l.NKNAddr(),
 	})
 	assert.Equal(t, nil, err)
 

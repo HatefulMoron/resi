@@ -521,7 +521,7 @@ func TestSocketAbsorb(t *testing.T) {
 }
 
 func TestSocketGRPCNKN(t *testing.T) {
-	a, err := NewNKNListener()
+	a, err := NewNKNListener("039e481266e5a05168c1d834a94db512dbc235877f150c5a3cc1e3903672c683")
 	assert.Equal(t, nil, err)
 
 	time.Sleep(time.Duration(100) * time.Millisecond)

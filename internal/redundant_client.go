@@ -22,8 +22,8 @@ type RedundantClient struct {
 }
 
 type RedunantAddr struct {
-	Tcp *string
-	Nkn *string
+	Tcp net.Addr
+	Nkn net.Addr
 }
 
 func newBasicClient(addr net.Addr) (net.Conn, protos.EsiClient, error) {
@@ -148,11 +148,7 @@ func RedundantDial(addr RedunantAddr) (*RedundantClient, error) {
 	nknClient = nil
 
 	if addr.Tcp != nil {
-		log.Println("conn tcp")
-		tcpConn, tcpClient, err = newBasicClient(&SocketAddr{
-			Net: "tcp",
-			Str: *addr.Tcp,
-		})
+		tcpConn, tcpClient, err = newBasicClient(addr.Tcp)
 
 		if err != nil {
 			return nil, err
@@ -160,11 +156,7 @@ func RedundantDial(addr RedunantAddr) (*RedundantClient, error) {
 	}
 
 	if addr.Nkn != nil {
-		log.Println("conn nkn")
-		nknConn, nknClient, err = newBasicClient(&SocketAddr{
-			Net: "nkn",
-			Str: *addr.Nkn,
-		})
+		nknConn, nknClient, err = newBasicClient(addr.Nkn)
 
 		if err != nil {
 			return nil, err
@@ -172,7 +164,7 @@ func RedundantDial(addr RedunantAddr) (*RedundantClient, error) {
 	}
 
 	if tcpConn == nil && nknConn == nil {
-		panic(*addr.Tcp)
+		panic(addr)
 	}
 
 	client := &RedundantClient{
@@ -188,14 +180,11 @@ func RedundantDial(addr RedunantAddr) (*RedundantClient, error) {
 			return nil, err
 		}
 		client.inner = tcpClient
-		log.Println("inner tcp (combined)")
 	} else {
 		if tcpConn != nil {
 			client.inner = tcpClient
-			log.Println("inner tcp")
 		} else {
 			client.inner = nknClient
-			log.Println("inner nkn")
 		}
 	}
 

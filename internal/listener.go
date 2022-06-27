@@ -15,6 +15,13 @@ import (
 	"google.golang.org/grpc/peer"
 )
 
+type ResiListenerOptions struct {
+	Tcp        net.Addr
+	NknSeed    string
+	TcpForward net.Addr
+	NknForward net.Addr
+}
+
 type ResiListener struct {
 	socketListener *SocketListener
 	socketCh       chan net.Conn
@@ -23,6 +30,7 @@ type ResiListener struct {
 	tcpAddr        net.Addr
 	nknAddr        net.Addr
 	server         *grpc.Server
+	forward        *RedundantClient
 
 	protos.UnimplementedEsiServer
 }
@@ -142,13 +150,7 @@ func (l *ResiListener) Test(
 	}
 
 	log.Printf("%s: forwarding req %d", peer.Addr, len(req.Data))
-
-	return &protos.TestResponse{
-		Ext:  nil,
-		Data: req.Data,
-	}, nil
-
-	//return resp, err
+	return l.forward.Inner().Test(ctx, req)
 }
 
 func backClient(addr string) (protos.EsiClient, error) {
@@ -197,12 +199,12 @@ func makeTcpListener(tcpAddr net.Addr) (net.Listener, error) {
 	return l, err
 }
 
-func makeNKNListener() (net.Listener, error) {
-	l, err := NewNKNListener()
+func makeNKNListener(seed string) (net.Listener, error) {
+	l, err := NewNKNListener(seed)
 	return l, err
 }
 
-func NewResiListener(tcpAddr net.Addr) (*ResiListener, error) {
+func NewResiListener(options ResiListenerOptions) (*ResiListener, error) {
 	listener := &ResiListener{
 		socketCh: make(chan net.Conn, 16),
 		sockets:  make(map[string]*Socket),
@@ -210,20 +212,45 @@ func NewResiListener(tcpAddr net.Addr) (*ResiListener, error) {
 		server:   grpc.NewServer(),
 	}
 
-	tcp, err := makeTcpListener(tcpAddr)
+	forward, err := RedundantDial(RedunantAddr{
+		Tcp: options.TcpForward,
+		Nkn: options.NknForward,
+	})
+
 	if err != nil {
+		log.Fatalf("failed to connect: %v\n", err)
 		return nil, err
 	}
 
-	nkn, err := makeNKNListener()
-	if err != nil {
-		return nil, err
+	listener.forward = forward
+
+	listeners := make([]net.Listener, 0)
+
+	if options.Tcp != nil {
+
+		tcp, err := makeTcpListener(options.Tcp)
+		if err != nil {
+			return nil, err
+		}
+
+		listeners = append(listeners, tcp)
+		listener.tcpAddr = tcp.Addr()
+
 	}
 
-	listener.tcpAddr = tcp.Addr()
-	listener.nknAddr = nkn.Addr()
+	if options.NknSeed != "" {
 
-	listener.socketListener = NewSocketListener([]net.Listener{tcp, nkn})
+		nkn, err := makeNKNListener(options.NknSeed)
+		if err != nil {
+			return nil, err
+		}
+
+		listeners = append(listeners, nkn)
+		listener.nknAddr = nkn.Addr()
+
+	}
+
+	listener.socketListener = NewSocketListener(listeners)
 	listener.socketListener.SetAcceptObserver(listener.socketCh)
 
 	go func() {

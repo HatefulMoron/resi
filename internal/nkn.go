@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/hex"
 	"net"
 	"time"
 
@@ -53,7 +54,7 @@ func (c *NKNConn) SetWriteDeadline(t time.Time) error {
 	return c.session.SetWriteDeadline(t)
 }
 
-func NewNKNListener() (*NKNListener, error) {
+func NewNKNListener(seed string) (*NKNListener, error) {
 	ncpConfig := &ncp.Config{
 		NonStream: false,
 	}
@@ -63,7 +64,12 @@ func NewNKNListener() (*NKNListener, error) {
 		ConnectRetries: 1,
 	}
 
-	account, err := nkn.NewAccount(nil)
+	seedHex, err := hex.DecodeString(seed)
+	if err != nil {
+		return nil, err
+	}
+
+	account, err := nkn.NewAccount(seedHex)
 	if err != nil {
 		return nil, err
 	}

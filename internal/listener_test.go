@@ -3,12 +3,31 @@ package internal
 import (
 	"context"
 	"math/rand"
+	"net"
 	"sync"
 	"testing"
 
 	protos "github.com/hatefulmoron/resi/protos"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc"
 )
+
+func serveEndServer(addr string) (*grpc.Server, error) {
+	tcp, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+
+	s := grpc.NewServer()
+	protos.RegisterEsiServer(s, &EndServer{})
+
+	go func() {
+		if err = s.Serve(tcp); err != nil {
+			return
+		}
+	}()
+	return s, nil
+}
 
 func vanillaTcp(l *ResiListener, t *testing.T) {
 	expected := make([]byte, 48)
@@ -43,9 +62,19 @@ func vanillaNKN(l *ResiListener, t *testing.T) {
 }
 
 func TestListenerVanillaTCP(t *testing.T) {
-	l, err := NewResiListener(SocketAddr{
-		Net: "tcp",
-		Str: "127.0.0.1:7000",
+	s, err := serveEndServer("localhost:7099")
+	assert.Equal(t, nil, err)
+	defer s.Stop()
+
+	l, err := NewResiListener(ResiListenerOptions{
+		Tcp: SocketAddr{
+			Net: "tcp",
+			Str: "127.0.0.1:7000",
+		},
+		TcpForward: SocketAddr{
+			Net: "tcp",
+			Str: "127.0.0.1:7099",
+		},
 	})
 	assert.Equal(t, nil, err)
 
@@ -56,9 +85,19 @@ func TestListenerVanillaTCP(t *testing.T) {
 }
 
 func TestListenerVanillaNKN(t *testing.T) {
-	l, err := NewResiListener(SocketAddr{
-		Net: "tcp",
-		Str: "127.0.0.1:7000",
+	s, err := serveEndServer("localhost:7099")
+	assert.Equal(t, nil, err)
+	defer s.Stop()
+
+	l, err := NewResiListener(ResiListenerOptions{
+		Tcp: SocketAddr{
+			Net: "tcp",
+			Str: "127.0.0.1:7000",
+		},
+		TcpForward: SocketAddr{
+			Net: "tcp",
+			Str: "127.0.0.1:7099",
+		},
 	})
 	assert.Equal(t, nil, err)
 
@@ -69,9 +108,20 @@ func TestListenerVanillaNKN(t *testing.T) {
 }
 
 func TestListenerVanillaBoth(t *testing.T) {
-	l, err := NewResiListener(SocketAddr{
-		Net: "tcp",
-		Str: "127.0.0.1:7000",
+	s, err := serveEndServer("localhost:7099")
+	assert.Equal(t, nil, err)
+	defer s.Stop()
+
+	l, err := NewResiListener(ResiListenerOptions{
+		Tcp: SocketAddr{
+			Net: "tcp",
+			Str: "127.0.0.1:7000",
+		},
+		TcpForward: SocketAddr{
+			Net: "tcp",
+			Str: "127.0.0.1:7099",
+		},
+		NknSeed: "039e481266e5a05168c1d834a94db512dbc235877f150c5a3cc1e3903662d673",
 	})
 	assert.Equal(t, nil, err)
 

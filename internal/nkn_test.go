@@ -26,7 +26,7 @@ func (s *server) SayHello(ctx context.Context, in *helloworld.HelloRequest) (*he
 
 func TestNKNSession(t *testing.T) {
 
-	listener, err := NewNKNListener()
+	listener, err := NewNKNListener("039e481266e5a05168c1d834a94db512dbc235877f150c5a3cc1e3903672c683")
 	assert.Equal(t, nil, err)
 
 	addr := listener.Addr()
@@ -77,7 +77,7 @@ func TestNKNGRPC(t *testing.T) {
 	s := grpc.NewServer()
 
 	go func() {
-		listener, err := NewNKNListener()
+		listener, err := NewNKNListener("039e481266e5a05168c1d834a94db512dbc235877f150c5a3cc1e3903672c683")
 		if err != nil {
 			errors <- fmt.Sprintf("new listener: %v", err)
 			return
