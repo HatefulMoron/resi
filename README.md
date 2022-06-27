@@ -66,18 +66,18 @@ TOML flavoured configuration file:
 # At least one of [tcp] or [nkn] must be present for RESI to function correctly.
 
 # If the [tcp] section is not configued, RESI will not attempt to use TCP.
-[tcp]
-address = "127.0.0.1:4900" # IPv4 or IPv6
-listen = "localhost:4001"
+[Tcp]
+Address = "127.0.0.1:9000" # IPv4 or IPv6
+Listen = "localhost:4001"
 
 # If the [nkn] section is not configued, RESI will not attempt to use NKN.
-[nkn]
-address = "919c54b38f907e82f030068c2c4a06239a2941f712306d9409474ebade479208"
-seed = "nknseed"
-subclients = 4 # See NKN documentation for more details.
+[Nkn]
+Address = "919c54b38f907e82f030068c2c4a06239a2941f712306d9409474ebade479208"
+Seed = "039e481266e5a05168c1d834a94db512dbc235877f150c5a3cc1e3903662d673"
+Subclients = 4 # See NKN documentation for more details.
 
 # RESI specific configuration options
-[resi]
+[Resi]
 # RESI can operate in either 'strict' or 'permissive' mode. In the default
 # strict mode, identical data must be observed on all transports before it
 # is passed through the gateway. This is considered the most reliable mode,
@@ -87,8 +87,7 @@ subclients = 4 # See NKN documentation for more details.
 # In permissive mode, the RESI gateway will wait for the data to arrive on one
 # of the transports and disregard any duplicate data that arrives in the
 # future.
-mode = "strict"
-
+Mode = "strict"
 ```
 
 [1]: https://datatracker.ietf.org/doc/html/rfc4960
