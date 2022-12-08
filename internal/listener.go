@@ -144,12 +144,13 @@ func (l *ResiListener) Test(
 	ctx context.Context,
 	req *protos.TestRequest,
 ) (*protos.TestResponse, error) {
-	peer, ok := peer.FromContext(ctx)
+	//peer, ok := peer.FromContext(ctx)
+	_, ok := peer.FromContext(ctx)
 	if !ok {
 		panic(ok)
 	}
 
-	log.Printf("%s: forwarding req %d", peer.Addr, len(req.Data))
+	//log.Printf("%s: forwarding req %d", peer.Addr, len(req.Data))
 	return l.forward.Inner().Test(ctx, req)
 }
 

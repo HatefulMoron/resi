@@ -3,7 +3,6 @@ package internal
 import (
 	"bytes"
 	"context"
-	"log"
 	"net"
 	"testing"
 	"time"
@@ -84,11 +83,32 @@ func TestRedundantClientVanillaTCP(t *testing.T) {
 }
 
 func TestRedundantClientBoth(t *testing.T) {
+	c := make(chan net.Addr)
+	s := grpc.NewServer()
+
+	go func() {
+
+		listener, err := net.Listen("tcp", "localhost:9050")
+		if err != nil {
+			panic(err)
+		}
+
+		c <- listener.Addr()
+
+		protos.RegisterEsiServer(s, &EndServer{})
+		if err = s.Serve(listener); err != nil {
+			panic(err)
+		}
+	}()
+
 	l, err := NewResiListener(ResiListenerOptions{
+		TcpForward: <-c,
 		Tcp: SocketAddr{
 			Net: "tcp",
 			Str: "127.0.0.1:7000",
-		}})
+		},
+		NknSeed: "039e481266e5a05168c1d834a94db512dbc235877f150c5a3cc1e3903672c673",
+	})
 	assert.Equal(t, nil, err)
 
 	go l.Serve()
@@ -103,8 +123,6 @@ func TestRedundantClientBoth(t *testing.T) {
 
 	data := []byte{1, 2, 3, 4, 5}
 
-	log.Println("==================================")
-
 	resp, err := client.Inner().Test(context.Background(), &protos.TestRequest{
 		Ext:  nil,
 		Data: data,
@@ -113,4 +131,5 @@ func TestRedundantClientBoth(t *testing.T) {
 	assert.Equal(t, true, bytes.Equal(data, resp.Data))
 
 	l.Stop()
+	s.Stop()
 }
